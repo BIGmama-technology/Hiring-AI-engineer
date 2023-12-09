@@ -1,4 +1,17 @@
+import numpy as np
 import pandas as pd
+from typing import Union
+
+def normalize(x: Union[pd.Series, np.ndarray]) -> Union[pd.Series, np.ndarray]:
+    """
+    Normalize a pandas series or numpy array
+    Args:
+        x: The data to normalize
+
+    Returns:
+        Normalized data
+    """
+    return ((x - x.mean()) / x.std() )
 
 
 def load_mauna_loa_atmospheric_co2(file_path):
@@ -9,7 +22,7 @@ def load_mauna_loa_atmospheric_co2(file_path):
     y = df["average"].values
 
     # Normalize the data for numerical stability
-    X_normalized = (X - X.mean()) / X.std()
+    X_normalized = normalize(X)
     return X, y, X_normalized
 
 
@@ -27,8 +40,10 @@ def load_international_airline_passengers(file_path):
     y_airpassengers = df_airpassengers["Passengers"].values
 
     # Normalize the data for numerical stability
-    X_airpassengers_normalized = (
-        X_airpassengers - X_airpassengers.mean()
-    ) / X_airpassengers.std()
+    X_airpassengers_normalized = normalize(X_airpassengers)
 
     return X_airpassengers, y_airpassengers, X_airpassengers_normalized
+
+
+
+
