@@ -45,5 +45,31 @@ def load_international_airline_passengers(file_path):
     return X_airpassengers, y_airpassengers, X_airpassengers_normalized
 
 
+def load_data_set(file_path, feature_column, target_column, normalized = True):
+    """
+    Load any dataset from a CSV file format
+
+    Args:
+        file_path (str): The path to the CSV file
+        feature_column(str): The name of the feature column
+        target_column(str): The name of the target column
+        normalized (bool): Whether to normalize the data or not
+
+    Returns:
+        Tuple: a tuple containing X, y, and optionally X_normalized
+    """
+    # Load data into a DataFrame
+    df = pd.read_csv(file_path)
+
+    # Prepare the data
+    #X = df[feature_column].values.reshape(-1, 1)
+    X = pd.to_datetime(df[feature_column]).astype("int64").values.reshape(-1, 1)
+    y = df[target_column].values
+    # Normalize the data for numerical stability
+    if normalized:
+        X_normalized = normalize(X)
+        return X, y, X_normalized
+    else:
+        return X, y
 
 
