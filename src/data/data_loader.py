@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from typing import Union
 
+
 def normalize(x: Union[pd.Series, np.ndarray]) -> Union[pd.Series, np.ndarray]:
     """
     Normalize a pandas series or numpy array
