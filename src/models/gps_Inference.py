@@ -61,10 +61,13 @@ for i, kernel in enumerate(kernels):
     upper = mean + 2 * std
     lower = mean - 2 * std
 
-    # Plot the results
+    # plot the results
     ########################
+    # calculating the number of columns using the number of kernels that we are using in GP's
+    num_column = int((len(kernel_names)+1)/2)
+
     #creating subplot grid to be able to compare the results
-    plt.subplot(2, 2, i+1)
+    plt.subplot(2,  num_column, i+1)
 
     # plot of all data points
     plt.scatter(features_normalized, targets, color="black", s=1)
@@ -118,7 +121,7 @@ for i, kernel in enumerate(kernels):
     # Plot the results
     ########################
     #creating subplot grid to be able to compare the results
-    plt.subplot(2, 2, i+1)
+    plt.subplot(2, num_column, i+1)
 
     # plot of all data points
     plt.scatter(features_normalized, targets, color="black", s=1)
@@ -134,4 +137,5 @@ for i, kernel in enumerate(kernels):
     plt.ylabel("y")
     plt.legend()
 
+plt.tight_layout()
 plt.show()
