@@ -135,7 +135,7 @@ class DropoutBayesianModel(nn.Module):
                     BnnLayer(num_features[i], num_features[i + 1]),
                     nn.BatchNorm1d(num_features[i + 1]),
                     nn.ReLU(),
-                    nn.Dropout(),  # (1 - 10/num_features[i+1]))
+                    nn.Dropout(0.2),  # (1 - 10/num_features[i+1]))
                 )
             else:
                 layer = BnnLayer(num_features[i], num_features[i + 1])
