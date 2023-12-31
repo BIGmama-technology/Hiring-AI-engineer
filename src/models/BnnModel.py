@@ -94,12 +94,14 @@ class BayesianModel(nn.Module):
 
     """
 
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size,num_layers):
         super(BayesianModel, self).__init__()
 
-        # Define the architecture of the Bayesian neural network
-        self.layer1 = BnnLayer(input_size, hidden_size)
-        self.layer2 = BnnLayer(hidden_size, output_size)
+        self.layers = nn.ModuleList([
+            BnnLayer(input_size, hidden_size) if i == 0 else BnnLayer(hidden_size, hidden_size)
+            for i in range(num_layers)
+        ])
+        self.output_layer = BnnLayer(hidden_size, output_size)
 
     def forward(self, x):
         """
@@ -113,7 +115,9 @@ class BayesianModel(nn.Module):
 
         """
         # Apply ReLU activation to the output of the first layer
-        x = F.relu(self.layer1(x))
-        # Pass the result through the second layer
-        x = self.layer2(x)
+        for layer in self.layers:
+            x = F.relu(layer(x))
+        
+        x = self.output_layer(x)
         return x
+        
