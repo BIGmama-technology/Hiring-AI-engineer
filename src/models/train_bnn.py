@@ -98,7 +98,6 @@ X2_test_tensor = torch.from_numpy(X2_test).float()
 
 input_size = X2_train.shape[1]
 model = BayesianModel(input_size, hidden_size, output_size, num_layers=5)
-
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 train_losses = train_model(
@@ -114,3 +113,60 @@ with torch.no_grad():
 plot_predictions(X2_test, y2_test, predictions_np_2)
 
 torch.save(model, "./models/international_airline_passengers_model.pth")
+
+############################## variational #######################
+# dataset 1
+def train_model_variational(X_train, y_train, model, optimizer, num_epochs):
+    train_losses = []
+    for epoch in tqdm(range(num_epochs), desc="Training", unit="epoch"):
+        model.train()
+        optimizer.zero_grad()
+        loss = model.elbo_loss(X_train, y_train)
+        loss.backward()
+        optimizer.step()
+        train_losses.append(loss.item())
+    return train_losses
+
+
+input_size = X1_train.shape[1]
+hidden_size = 20
+output_size = 1
+model = BayesianModel(input_size, hidden_size, output_size, num_layers=5)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+num_epochs = 1000
+
+train_losses = train_model_variational(
+    X1_train_tensor, y1_train_tensor, model, optimizer, num_epochs
+)
+plot_training_loss(train_losses)
+
+with torch.no_grad():
+    model.eval()
+    predictions_1 = model(X1_test_tensor)
+    predictions_np_1 = predictions_1.numpy()
+
+plot_predictions(X1_test, y1_test, predictions_np_1)
+
+torch.save(model.state_dict(), "./models/mauna_loa_model.pth")
+
+# dataset 2
+input_size = X2_train.shape[1]
+model = BayesianModel(input_size, hidden_size, output_size, num_layers=5)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+num_epochs = 1000
+
+train_losses = train_model_variational(
+    X2_train_tensor, y2_train_tensor, model, optimizer, num_epochs
+)
+plot_training_loss(train_losses)
+
+with torch.no_grad():
+    model.eval()
+    predictions_2 = model(X2_test_tensor)
+    predictions_np_2 = predictions_2.numpy()
+
+plot_predictions(X2_test, y2_test, predictions_np_2)
+
+torch.save(model.state_dict(), "./models/international_airline_passengers_model.pth")
