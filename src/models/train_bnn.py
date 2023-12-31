@@ -3,12 +3,38 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
+import numpy as np
 from src.models.BnnModel import BayesianModel
 from src.data.data_loader import (
     load_mauna_loa_atmospheric_co2,
     load_international_airline_passengers,
 )
+
+
+def plot_epistemic_uncertainty(model, X_test):
+    model.eval()
+    with torch.no_grad():
+        preds = []
+        for i in range(100):
+            pred = model(X_test)
+            preds.append(pred.numpy())
+
+    preds = np.stack(preds)
+    mean_preds = np.mean(preds, axis=0)
+    uncertainty = np.std(preds, axis=0)
+
+    plt.figure(figsize=(10, 6))
+    plt.fill_between(
+        X_test.flatten(),
+        mean_preds.flatten() - 1.96 * uncertainty.flatten(),
+        mean_preds.flatten() + 1.96 * uncertainty.flatten(),
+        alpha=0.2,
+    )
+    plt.plot(X_test, mean_preds, "r-", lw=2)
+    plt.xlabel("Input")
+    plt.ylabel("Predictions")
+    plt.title("Epistemic Uncertainty")
+    plt.show()
 
 
 def train_model(X_train, y_train, model, optimizer, loss_function, num_epochs):
@@ -70,6 +96,8 @@ def run_training(
         predictions_np = predictions.numpy()
 
     plot_predictions(X_test, y_test, predictions_np)
+    plot_epistemic_uncertainty(model, X_test)
+
     return model
 
 
@@ -141,6 +169,7 @@ model_1_var, losses_1_var = train_model_variational(
 )
 plot_training_loss(losses_1_var)
 torch.save(model_1_var.state_dict(), "./models/mauna_loa_model_var.pth")
+plot_epistemic_uncertainty(model_1_var, X1_test_tensor)
 
 model_2_var = BayesianModel(input_size, hidden_size, output_size, 5)
 optimizer_2_var = torch.optim.Adam(model_2_var.parameters(), lr=0.01)
@@ -151,3 +180,4 @@ plot_training_loss(losses_2_var)
 torch.save(
     model_2_var.state_dict(), "./models/international_airline_passengers_model_var.pth"
 )
+plot_epistemic_uncertainty(model_2_var, X2_test_tensor)
