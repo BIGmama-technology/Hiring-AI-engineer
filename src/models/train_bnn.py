@@ -26,8 +26,8 @@ def plot_epistemic_uncertainty(model, X_test):
     plt.figure(figsize=(10, 6))
     plt.fill_between(
         X_test.flatten(),
-        mean_preds.flatten() - 1.96 * uncertainty.flatten(),
-        mean_preds.flatten() + 1.96 * uncertainty.flatten(),
+        mean_preds.flatten() - 3 * uncertainty.flatten(),
+        mean_preds.flatten() + 3 * uncertainty.flatten(),
         alpha=0.2,
     )
     plt.plot(X_test, mean_preds, "r-", lw=2)
