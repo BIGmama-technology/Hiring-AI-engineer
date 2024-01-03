@@ -124,10 +124,8 @@ class BayesianModel(nn.Module):
         
         # Apply ReLU activation to the output of the first layer
         x = F.relu(self.layer1(x))
-        print(skiped.shape, x.shape)
         #concatenate the linear data with the convoluted input ( Concat is better then add) 
         x = torch.cat([x,skiped], -1)
-        print(x.shape)
         # Pass the result through the second layer
         x = self.layer2(x)
         return x
