@@ -71,9 +71,9 @@ class BnnLayer(nn.Module):
         # Sample weights and biases from normal distributions
         weight = Normal(self.weight_mu, torch.exp(self.weight_std)).rsample()
         bias = Normal(self.bias_mu, torch.exp(self.bias_std)).rsample()
-
         # Apply linear transformation to input using sampled weights and biases
         return F.linear(x, weight, bias)
+
 
 
 class BayesianModel(nn.Module):
@@ -96,10 +96,16 @@ class BayesianModel(nn.Module):
 
     def __init__(self, input_size, hidden_size, output_size):
         super(BayesianModel, self).__init__()
-
-        # Define the architecture of the Bayesian neural network
-        self.layer1 = BnnLayer(input_size, hidden_size)
+        if hidden_size%2 == 1 : 
+            self.vars   = int((hidden_size-1)/2)
+            self.layer1 = BnnLayer(input_size, self.vars)
+            self.skip1d = torch.nn.Conv1d(1, self.vars+1, 1, stride=1,dilation=2)
+        else : 
+            self.vars   = int(hidden_size/2)
+            self.layer1 = BnnLayer(input_size, self.vars)
+            self.skip1d = torch.nn.Conv1d(1, self.vars, 1, stride=1,dilation=2)
         self.layer2 = BnnLayer(hidden_size, output_size)
+        
 
     def forward(self, x):
         """
@@ -112,8 +118,16 @@ class BayesianModel(nn.Module):
             torch.Tensor: Output tensor of the model.
 
         """
+        # Apply Conv1D for the input data (expand dims, Conv1D, squeeze) 
+        inp = x[...,None]
+        skiped = self.skip1d(inp).squeeze()
+        
         # Apply ReLU activation to the output of the first layer
         x = F.relu(self.layer1(x))
+        print(skiped.shape, x.shape)
+        #concatenate the linear data with the convoluted input ( Concat is better then add) 
+        x = torch.cat([x,skiped], -1)
+        print(x.shape)
         # Pass the result through the second layer
         x = self.layer2(x)
         return x
