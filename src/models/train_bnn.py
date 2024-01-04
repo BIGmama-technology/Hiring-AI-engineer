@@ -36,7 +36,7 @@ output_size = 1
 model = BayesianModel(input_size, hidden_size, output_size)
 
 # Define loss function and optimizer
-loss_function = nn.MSELoss()
+loss_function = nn.L1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 # Training loop
@@ -112,7 +112,7 @@ model = BayesianModel(input_size, hidden_size, output_size)
 
 
 # Define loss function and optimizer
-loss_function = nn.MSELoss()
+loss_function = nn.L1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 # Training loop
