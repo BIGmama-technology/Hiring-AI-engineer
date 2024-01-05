@@ -2,163 +2,182 @@ import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-
+from tqdm import tqdm
+import numpy as np
 from src.models.BnnModel import BayesianModel
 from src.data.data_loader import (
     load_mauna_loa_atmospheric_co2,
     load_international_airline_passengers,
 )
 
+
+def plot_epistemic_uncertainty(model, X_test):
+    model.eval()
+    with torch.no_grad():
+        preds = []
+        for i in range(100):
+            pred = model(X_test)
+            preds.append(pred.numpy())
+
+    preds = np.stack(preds)
+    mean_preds = np.mean(preds, axis=0)
+    uncertainty = np.std(preds, axis=0)
+
+    plt.figure(figsize=(10, 6))
+    plt.fill_between(
+        X_test.flatten(),
+        mean_preds.flatten() - 3 * uncertainty.flatten(),
+        mean_preds.flatten() + 3 * uncertainty.flatten(),
+        alpha=0.2,
+    )
+    plt.plot(X_test, mean_preds, "r-", lw=2)
+    plt.xlabel("Input")
+    plt.ylabel("Predictions")
+    plt.title("Epistemic Uncertainty")
+    plt.show()
+
+
+def train_model(X_train, y_train, model, optimizer, loss_function, num_epochs):
+    train_losses = []
+    for epoch in tqdm(range(num_epochs), desc="Training", unit="epoch"):
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train)
+        loss = loss_function(outputs, y_train)
+        loss.backward()
+        optimizer.step()
+        train_losses.append(loss.item())
+    return train_losses
+
+
+def train_model_variational(X_train, y_train, model, optimizer, num_epochs):
+    train_losses = []
+    for epoch in tqdm(range(num_epochs), desc="Training", unit="epoch"):
+        model.train()
+        optimizer.zero_grad()
+        loss = model.elbo_loss(X_train, y_train)
+        loss.backward()
+        optimizer.step()
+        train_losses.append(loss.item())
+    return model, train_losses
+
+
+def plot_training_loss(train_losses, title="Training Loss Over Epochs"):
+    plt.plot(range(1, len(train_losses) + 1), train_losses, label="Training Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title(title)
+    plt.legend()
+    plt.show()
+
+
+def plot_predictions(X_test, y_test, predictions, title="True Values vs Predictions"):
+    plt.figure(figsize=(10, 6))
+    plt.plot(X_test, y_test, "b.", markersize=10, label="Ground Truth")
+    plt.plot(X_test, predictions, "r.", markersize=10, label="Predictions")
+    plt.xlabel("Input Features (X_test)")
+    plt.ylabel("Ground Truth and Predictions (y_test, Predictions)")
+    plt.title(title)
+    plt.legend()
+    plt.show()
+
+
+def run_training(
+    X_train, y_train, X_test, y_test, model, optimizer, loss_function, num_epochs
+):
+    train_losses = train_model(
+        X_train, y_train, model, optimizer, loss_function, num_epochs
+    )
+    plot_training_loss(train_losses)
+
+    with torch.no_grad():
+        model.eval()
+        predictions = model(X_test)
+        predictions_np = predictions.numpy()
+
+    plot_predictions(X_test, y_test, predictions_np)
+    plot_epistemic_uncertainty(model, X_test)
+
+    return model
+
+
 MUANA_DATA_PATH = "data/mauna_loa_atmospheric_co2.csv"
 AIRLINE_DATA_PATH = "data/international-airline-passengers.csv"
 
-# ------------------------------------------
 # mauna_loa_atmospheric_co2 Dataset
-# ------------------------------------------
-
-# Prepare data
 X1, y1, X1_normalized = load_mauna_loa_atmospheric_co2(MUANA_DATA_PATH)
-
-# Split the data into training and test sets
 X1_train, X1_test, y1_train, y1_test = train_test_split(
     X1_normalized, y1, test_size=0.2, random_state=42
 )
-
-# Convert NumPy arrays to PyTorch tensors
 X1_train_tensor = torch.from_numpy(X1_train).float()
 y1_train_tensor = torch.from_numpy(y1_train).float()
 X1_test_tensor = torch.from_numpy(X1_test).float()
 
-# Define the Bayesian neural network model
-input_size = X1_train.shape[1]
-hidden_size = 20
-output_size = 1
-model = BayesianModel(input_size, hidden_size, output_size)
-
-# Define loss function and optimizer
-loss_function = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-
-# Training loop
-num_epochs = 1000
-train_losses = []
-
-for epoch in range(num_epochs):
-    # Forward pass
-    outputs = model(X1_train_tensor)
-    loss = loss_function(outputs, y1_train_tensor)
-
-    # Backward pass and optimization
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    train_losses.append(loss.item())
-
-# ---------  Plot training losses  ----------
-
-plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Training Loss Over Epochs")
-plt.legend()
-plt.show()
-
-# ---------  Plot Ground Truth vs Predictions  ----------
-
-# Evaluate the model on the test set
-with torch.no_grad():
-    model.eval()
-    predictions_1 = model(X1_test_tensor)
-
-# Convert predictions to NumPy array for plotting
-predictions_np_1 = predictions_1.numpy()
-
-# export model
-torch.save(model, "./models/mauna_loa_model.pth")
-
-plt.figure(figsize=(10, 6))
-plt.plot(X1_test, y1_test, "b.", markersize=10, label="Ground Truth")
-plt.plot(X1_test, predictions_1, "r.", markersize=10, label="Predictions")
-plt.xlabel("Input Features (X_test)")
-plt.ylabel("Ground Truth and Predictions (y_test, Predictions)")
-plt.title("True Values vs Predictions")
-plt.legend()
-plt.show()
-
-
-# ------------------------------------------
 # international-airline-passengers Dataset
-# ------------------------------------------
-
-# Prepare data
 X2, y2, X2_normalized = load_international_airline_passengers(AIRLINE_DATA_PATH)
-
-# Split the data into training and test sets
 X2_train, X2_test, y2_train, y2_test = train_test_split(
     X2_normalized, y2, test_size=0.2, random_state=42
 )
-
-# Convert NumPy arrays to PyTorch tensors
 X2_train_tensor = torch.from_numpy(X2_train).float()
 y2_train_tensor = torch.from_numpy(y2_train).float()
 X2_test_tensor = torch.from_numpy(X2_test).float()
 
-# Define the Bayesian neural network model
-input_size = X2_train.shape[1]
+# Common model parameters
+input_size = X1_train.shape[1]
 hidden_size = 20
 output_size = 1
-model = BayesianModel(input_size, hidden_size, output_size)
-
-
-# Define loss function and optimizer
-loss_function = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-
-# Training loop
 num_epochs = 1000
-train_losses = []
 
-for epoch in range(num_epochs):
-    # Forward pass
-    outputs = model(X2_train_tensor)
-    loss = loss_function(outputs, y2_train_tensor)
+# Training and evaluating models for mauna_loa_atmospheric_co2 Dataset
+model_1 = BayesianModel(input_size, hidden_size, output_size, 5)
+optimizer_1 = torch.optim.Adam(model_1.parameters(), lr=0.01)
+loss_function = nn.MSELoss()
 
-    # Backward pass and optimization
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+model_1 = run_training(
+    X1_train_tensor,
+    y1_train_tensor,
+    X1_test_tensor,
+    y1_test,
+    model_1,
+    optimizer_1,
+    loss_function,
+    num_epochs,
+)
+torch.save(model_1.state_dict(), "./models/mauna_loa_model.pth")
 
-    train_losses.append(loss.item())
+# Training and evaluating models for international-airline-passengers Dataset
+model_2 = BayesianModel(input_size, hidden_size, output_size, 5)
+optimizer_2 = torch.optim.Adam(model_2.parameters(), lr=0.01)
 
-# ---------  Plot training losses  ----------
+model_2 = run_training(
+    X2_train_tensor,
+    y2_train_tensor,
+    X2_test_tensor,
+    y2_test,
+    model_2,
+    optimizer_2,
+    loss_function,
+    num_epochs,
+)
+torch.save(model_2.state_dict(), "./models/international_airline_passengers_model.pth")
 
-plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Training Loss Over Epochs")
-plt.legend()
-plt.show()
+# Training using variational inference for both datasets
+model_1_var = BayesianModel(input_size, hidden_size, output_size, 5)
+optimizer_1_var = torch.optim.Adam(model_1_var.parameters(), lr=0.01)
+model_1_var, losses_1_var = train_model_variational(
+    X1_train_tensor, y1_train_tensor, model_1_var, optimizer_1_var, num_epochs
+)
+plot_training_loss(losses_1_var)
+torch.save(model_1_var.state_dict(), "./models/mauna_loa_model_var.pth")
+plot_epistemic_uncertainty(model_1_var, X1_test_tensor)
 
-# ---------  Plot Ground Truth vs Predictions  ----------
-
-# Evaluate the model on the test set
-with torch.no_grad():
-    model.eval()
-    predictions_2 = model(X2_test_tensor)
-
-
-# Convert predictions to NumPy array for plotting
-predictions_np_2 = predictions_2.numpy()
-
-# export model
-torch.save(model, "./models/international_airline_passengers_model.pth")
-
-plt.figure(figsize=(10, 6))
-plt.plot(X2_test, y2_test, "b.", markersize=10, label="Ground Truth")
-plt.plot(X2_test, predictions_2, "r.", markersize=10, label="Predictions")
-plt.xlabel("Input Features (X_test)")
-plt.ylabel("Ground Truth and Predictions (y_test, Predictions)")
-plt.title("True Values vs Predictions")
-plt.legend()
-plt.show()
+model_2_var = BayesianModel(input_size, hidden_size, output_size, 5)
+optimizer_2_var = torch.optim.Adam(model_2_var.parameters(), lr=0.01)
+model_2_var, losses_2_var = train_model_variational(
+    X2_train_tensor, y2_train_tensor, model_2_var, optimizer_2_var, num_epochs
+)
+plot_training_loss(losses_2_var)
+torch.save(
+    model_2_var.state_dict(), "./models/international_airline_passengers_model_var.pth"
+)
+plot_epistemic_uncertainty(model_2_var, X2_test_tensor)

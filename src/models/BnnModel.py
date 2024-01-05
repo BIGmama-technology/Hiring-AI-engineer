@@ -75,6 +75,24 @@ class BnnLayer(nn.Module):
         # Apply linear transformation to input using sampled weights and biases
         return F.linear(x, weight, bias)
 
+    def kl_divergence(self):
+        """
+        Compute KL divergence between prior and approximate posterior for weights and biases.
+        """
+        weight_prior = Normal(
+            torch.zeros_like(self.weight_mu), torch.exp(self.weight_std)
+        )
+        weight_posterior = Normal(self.weight_mu, torch.exp(self.weight_std))
+        kl_weight = torch.distributions.kl.kl_divergence(
+            weight_posterior, weight_prior
+        ).sum()
+
+        bias_prior = Normal(torch.zeros_like(self.bias_mu), torch.exp(self.bias_std))
+        bias_posterior = Normal(self.bias_mu, torch.exp(self.bias_std))
+        kl_bias = torch.distributions.kl.kl_divergence(bias_posterior, bias_prior).sum()
+
+        return kl_weight + kl_bias
+
 
 class BayesianModel(nn.Module):
     """
@@ -94,12 +112,18 @@ class BayesianModel(nn.Module):
 
     """
 
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, num_layers):
         super(BayesianModel, self).__init__()
 
-        # Define the architecture of the Bayesian neural network
-        self.layer1 = BnnLayer(input_size, hidden_size)
-        self.layer2 = BnnLayer(hidden_size, output_size)
+        self.layers = nn.ModuleList(
+            [
+                BnnLayer(input_size, hidden_size)
+                if i == 0
+                else BnnLayer(hidden_size, hidden_size)
+                for i in range(num_layers)
+            ]
+        )
+        self.output_layer = BnnLayer(hidden_size, output_size)
 
     def forward(self, x):
         """
@@ -113,7 +137,35 @@ class BayesianModel(nn.Module):
 
         """
         # Apply ReLU activation to the output of the first layer
-        x = F.relu(self.layer1(x))
-        # Pass the result through the second layer
-        x = self.layer2(x)
+        for layer in self.layers:
+            x = F.relu(layer(x))
+
+        x = self.output_layer(x)
         return x
+
+    def kl_divergence(self):
+        """
+        Compute total KL divergence for all layers in the model.
+        """
+        kl = 0
+        for layer in self.layers:
+            kl += layer.kl_divergence()
+        kl += self.output_layer.kl_divergence()
+        return kl
+
+    def elbo_loss(self, x, y, num_samples=10):
+        """
+        Compute the Evidence Lower Bound (ELBO) loss for training the BNN.
+        """
+        outputs = []
+        kl = self.kl_divergence()
+
+        for _ in range(num_samples):
+            output = self.forward(x)
+            outputs.append(output)
+
+        outputs = torch.stack(outputs)
+        log_likelihood = Normal(outputs.mean(0), 1).log_prob(y).sum()
+
+        elbo = log_likelihood - (kl / len(x))
+        return -elbo  # Return negative ELBO as we want to minimize
