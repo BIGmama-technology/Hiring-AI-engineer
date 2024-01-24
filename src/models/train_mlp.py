@@ -43,7 +43,7 @@ X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
 X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
 y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
 
-# cefine the model, loss function, and optimizer
+# cefine the model, loss function and optimizer
 input_dim = look_back
 hidden_dim = 50
 output_dim = 1
@@ -52,7 +52,7 @@ model = MLP(input_dim, hidden_dim, output_dim, dropout_rate)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Train the model
+# training
 epochs = 100
 for epoch in range(epochs):
     model.train()
