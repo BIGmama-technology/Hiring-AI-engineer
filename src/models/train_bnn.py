@@ -3,6 +3,8 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
+# import tqdm
+from tqdm import tqdm
 from src.models.BnnModel import BayesianModel
 from src.data.data_loader import (
     load_mauna_loa_atmospheric_co2,
@@ -44,7 +46,7 @@ def train_bnn_mauna_loa_atmospheric_co2():
     num_epochs = 1000
     train_losses = []
 
-    for epoch in range(num_epochs):
+    for epoch in tqdm(range(num_epochs)):
         # Forward pass
         outputs = model(X1_train_tensor)
         loss = loss_function(outputs, y1_train_tensor)
@@ -120,7 +122,7 @@ def train_bnn_international_airline_passengers():
     num_epochs = 1000
     train_losses = []
 
-    for epoch in range(num_epochs):
+    for epoch in tqdm(range(num_epochs)):
         # Forward pass
         outputs = model(X2_train_tensor)
         loss = loss_function(outputs, y2_train_tensor)
