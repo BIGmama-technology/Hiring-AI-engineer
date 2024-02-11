@@ -31,9 +31,10 @@ def train_bnn_mauna_loa_atmospheric_co2():
 
     # Define the Bayesian neural network model
     input_size = X1_train.shape[1]
-    hidden_size = 20
+    hidden_size1 = 12
+    hidden_size2 = 8
     output_size = 1
-    model = BayesianModel(input_size, hidden_size, output_size)
+    model = BayesianModel(input_size, hidden_size1, hidden_size2, output_size)
 
     # Define loss function and optimizer
     loss_function = nn.MSELoss()
@@ -106,9 +107,10 @@ def train_bnn_international_airline_passengers():
 
     # Define the Bayesian neural network model
     input_size = X2_train.shape[1]
-    hidden_size = 20
+    hidden_size1 = 10
+    hidden_size2 = 5
     output_size = 1
-    model = BayesianModel(input_size, hidden_size, output_size)
+    model = BayesianModel(input_size, hidden_size1, hidden_size2, output_size)
 
     # Define loss function and optimizer
     loss_function = nn.MSELoss()
