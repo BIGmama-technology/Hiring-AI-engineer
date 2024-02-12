@@ -40,6 +40,8 @@ class BnnLayer(nn.Module):
         self.bias_mu = nn.Parameter(torch.Tensor(out_features))
         self.bias_std = nn.Parameter(torch.Tensor(out_features))
 
+        self.weight_prior = torch.distributions.Normal(0, 1)
+        self.bias_prior = torch.distributions.Normal(0, 1)
         # Initialize parameters
         self.reset_parameters()
 
@@ -71,9 +73,38 @@ class BnnLayer(nn.Module):
         # Sample weights and biases from normal distributions
         weight = Normal(self.weight_mu, torch.exp(self.weight_std)).rsample()
         bias = Normal(self.bias_mu, torch.exp(self.bias_std)).rsample()
+        kl_divergence = 0
+        if self.training:
+            # Compute KL divergence for variational inference
+
+            weight_std = torch.log(1 + torch.exp(self.weight_std))
+            bias_std = torch.log(1 + torch.exp(self.bias_std))
+
+            weight_prior_log_prob = self.weight_prior.log_prob(weight).sum()
+
+            weight_posterior_log_prob = (
+                torch.distributions.Normal(self.weight_mu, weight_std)
+                .log_prob(weight)
+                .sum()
+            )
+
+            bias_prior_log_prob = self.bias_prior.log_prob(bias).sum()
+
+            bias_posterior_log_prob = (
+                torch.distributions.Normal(self.bias_mu, bias_std).log_prob(bias).sum()
+            )
+
+            kl_divergence = -(
+                weight_posterior_log_prob
+                - weight_prior_log_prob
+                + bias_posterior_log_prob
+                - bias_prior_log_prob
+            )
 
         # Apply linear transformation to input using sampled weights and biases
-        return F.linear(x, weight, bias)
+        output = F.linear(x, weight, bias)
+        # return both  output  and kl_divergence
+        return output, kl_divergence
 
 
 class BayesianModel(nn.Module):
@@ -114,8 +145,14 @@ class BayesianModel(nn.Module):
 
         """
         # Apply ReLU activation to the output of the first layer
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
-        # Pass the result through the second layer
-        x = self.layer3(x)
-        return x
+        x, kl_div1 = self.layer1(x)
+        x = F.relu(x)
+        # Pass the result through the second  layer
+        x, kl_div2 = self.layer2(x)
+        x = F.relu(x)
+        # Pass the result through the third  layer
+        x, kl_div3 = self.layer3(x)
+
+        # calculate the summation of KLs
+        total_kl_divergence = kl_div1 + kl_div2 + kl_div3
+        return x, total_kl_divergence

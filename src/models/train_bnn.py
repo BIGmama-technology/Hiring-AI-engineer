@@ -39,7 +39,10 @@ def train_bnn_mauna_loa_atmospheric_co2():
     model = BayesianModel(input_size, hidden_size1, hidden_size2, output_size)
 
     # Define loss function and optimizer
-    loss_function = nn.MSELoss()
+    def loss_function(outputs, target, kl_divergence):
+        mse = nn.MSELoss()
+        return mse(outputs, target) + 0.5 * kl_divergence
+
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
     # Training loop
@@ -48,8 +51,8 @@ def train_bnn_mauna_loa_atmospheric_co2():
 
     for epoch in tqdm(range(num_epochs)):
         # Forward pass
-        outputs = model(X1_train_tensor)
-        loss = loss_function(outputs, y1_train_tensor)
+        outputs, kl_divergence = model(X1_train_tensor)
+        loss = loss_function(outputs, y1_train_tensor, kl_divergence)
 
         # Backward pass and optimization
         optimizer.zero_grad()
@@ -72,7 +75,7 @@ def train_bnn_mauna_loa_atmospheric_co2():
     # Evaluate the model on the test set
     with torch.no_grad():
         model.eval()
-        predictions_1 = model(X1_test_tensor)
+        predictions_1, _ = model(X1_test_tensor)
 
     # Convert predictions to NumPy array for plotting
     predictions_np_1 = predictions_1.numpy()
@@ -115,7 +118,10 @@ def train_bnn_international_airline_passengers():
     model = BayesianModel(input_size, hidden_size1, hidden_size2, output_size)
 
     # Define loss function and optimizer
-    loss_function = nn.MSELoss()
+    def loss_function(outputs, target, kl_divergence):
+        mse = nn.MSELoss()
+        return mse(outputs, target) + 0.5 * kl_divergence
+
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
     # Training loop
@@ -124,8 +130,8 @@ def train_bnn_international_airline_passengers():
 
     for epoch in tqdm(range(num_epochs)):
         # Forward pass
-        outputs = model(X2_train_tensor)
-        loss = loss_function(outputs, y2_train_tensor)
+        outputs, kl_divergence = model(X2_train_tensor)
+        loss = loss_function(outputs, y2_train_tensor, kl_divergence)
 
         # Backward pass and optimization
         optimizer.zero_grad()
@@ -148,7 +154,7 @@ def train_bnn_international_airline_passengers():
     # Evaluate the model on the test set
     with torch.no_grad():
         model.eval()
-        predictions_2 = model(X2_test_tensor)
+        predictions_2, kl_divergence = model(X2_test_tensor)
 
     # Convert predictions to NumPy array for plotting
     predictions_np_2 = predictions_2.numpy()

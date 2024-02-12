@@ -81,5 +81,5 @@ ld = [
     ],
 ]
 
-# test()
-banchmark(lm, ld)
+test()
+# banchmark(lm, ld)
