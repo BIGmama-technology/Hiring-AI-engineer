@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 # import tqdm
 from tqdm import tqdm
+import numpy as np
 from src.models.BnnModel import BayesianModel
 from src.data.data_loader import (
     load_mauna_loa_atmospheric_co2,
@@ -25,6 +26,13 @@ def train_bnn_mauna_loa_atmospheric_co2():
     X1_train, X1_test, y1_train, y1_test = train_test_split(
         X1_normalized, y1, test_size=0.2, random_state=42
     )
+
+    # test data sorting and flattening ( for Plotting  )
+
+    y1_test = y1_test.ravel()
+    indices = np.argsort(X1_test.ravel())
+    X1_test = X1_test[indices]
+    y1_test = y1_test[indices]
 
     # Convert NumPy arrays to PyTorch tensors
     X1_train_tensor = torch.from_numpy(X1_train).float()
@@ -72,20 +80,25 @@ def train_bnn_mauna_loa_atmospheric_co2():
 
     # ---------  Plot Ground Truth vs Predictions  ----------
 
-    # Evaluate the model on the test set
+    # Evaluate the models on the test set
     with torch.no_grad():
         model.eval()
-        predictions_1, _ = model(X1_test_tensor)
+        predictions_1 = torch.cat(
+            [model(X1_test_tensor)[0] for _ in range(1000)], dim=1
+        )
 
-    # Convert predictions to NumPy array for plotting
-    predictions_np_1 = predictions_1.numpy()
+    # extract the mean and std of my models prediction , and convert them  to numpy
+    mu = predictions_1.numpy().mean(axis=1).ravel()
+    y_std = predictions_1.numpy().std(axis=1).ravel()
 
     # export model
     torch.save(model, "./models/mauna_loa_model.pth")
 
+    # plotting
     plt.figure(figsize=(10, 6))
     plt.plot(X1_test, y1_test, "b.", markersize=10, label="Ground Truth")
-    plt.plot(X1_test, predictions_1, "r.", markersize=10, label="Predictions")
+    plt.plot(X1_test, mu, "r.", markersize=10, label="Predictions")
+    plt.fill_between(X1_test.ravel(), mu - 10 * y_std, mu + 10 * y_std)
     plt.xlabel("Input Features (X_test)")
     plt.ylabel("Ground Truth and Predictions (y_test, Predictions)")
     plt.title("True Values vs Predictions")
@@ -104,6 +117,12 @@ def train_bnn_international_airline_passengers():
     X2_train, X2_test, y2_train, y2_test = train_test_split(
         X2_normalized, y2, test_size=0.2, random_state=42
     )
+
+    # test data sorting and flattening  ( for Plotting  )
+    y2_test = y2_test.ravel()
+    indices = np.argsort(X2_test.ravel())
+    X2_test = X2_test[indices]
+    y2_test = y2_test[indices]
 
     # Convert NumPy arrays to PyTorch tensors
     X2_train_tensor = torch.from_numpy(X2_train).float()
@@ -151,20 +170,25 @@ def train_bnn_international_airline_passengers():
 
     # ---------  Plot Ground Truth vs Predictions  ----------
 
-    # Evaluate the model on the test set
+    # Evaluate the models on the test set
     with torch.no_grad():
         model.eval()
-        predictions_2, kl_divergence = model(X2_test_tensor)
+        predictions_2 = torch.cat(
+            [model(X2_test_tensor)[0] for _ in range(1000)], dim=1
+        )
 
-    # Convert predictions to NumPy array for plotting
-    predictions_np_2 = predictions_2.numpy()
+    # extract the mean and std of my models prediction , and convert them  to numpy
+    mu = predictions_2.numpy().mean(axis=1).ravel()
+    y_std = predictions_2.numpy().std(axis=1).ravel()
 
     # export model
     torch.save(model, "./models/international_airline_passengers_model.pth")
 
+    # plotting
     plt.figure(figsize=(10, 6))
     plt.plot(X2_test, y2_test, "b.", markersize=10, label="Ground Truth")
-    plt.plot(X2_test, predictions_2, "r.", markersize=10, label="Predictions")
+    plt.plot(X2_test, mu, "r.", markersize=10, label="Predictions")
+    plt.fill_between(X2_test.ravel(), mu - 10 * y_std, mu + 10 * y_std)
     plt.xlabel("Input Features (X_test)")
     plt.ylabel("Ground Truth and Predictions (y_test, Predictions)")
     plt.title("True Values vs Predictions")
