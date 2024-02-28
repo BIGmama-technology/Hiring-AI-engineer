@@ -1,27 +1,39 @@
-## Benchmarking the BNN Model
+# Benchmarking Model
 
-To benchmark a model, follow these steps:
+## Overview
 
-1. Prepare the dataset:
-Ensure that you have a suitable dataset for benchmarking the model Example BNN model. Ensure that you have the required datasets (mauna_loa_atmospheric_co2.csv and international-airline-passengers.csv) in the ./data directory.
+Follow the steps below to benchmark the model's performance on relevant metrics.
 
-2. Train the model:
-Train the BNN models using the provided script. The trained models will be saved in the ./models directory.
-`python train_bnn_models.py`
+## Benchmarking the Example BNN Model
 
-3. Benchmarking:
-Run the benchmarking script to evaluate the models on relevant metrics.
-`python benchmark_bnn_models.py`
+1. **Prepare the Dataset:**
+   - Ensure you have a suitable dataset for benchmarking the BNN model. The required datasets (`mauna_loa_atmospheric_co2.csv` and `international-airline-passengers.csv`) should be placed in the `./data` directory.
 
+2. **Train the Model:**
+   - Train the BNN models using the provided script. The trained models will be saved in the `./models` directory.
 
+   ```bash
+   python train_bnn_models.py
+3. **Benchmarking:**
 
+- Run the benchmarking script to evaluate the models on the metrics.
+    ```bash
+    python benchmark_bnn_models.py
+
+## Benchmarking Future Models
 To benchmark future models, follow these steps:
 
-1. Implement the new model in the src.models directory.
+- Implement the New Model:
+Implement the new model in the `src.models` directory.
 
-2. Update the train_models.py script to include training for the new model.
 
-3. Ensure that the new model is saved using torch.save in the ./models directory.
+- Update the Training Script:
+Update the `train_models.py` script to include training for the new model.
+Save the New Model:
 
-4. Run the benchmarking script (benchmark_models.py) to evaluate the new model alongside existing models.
+- Ensure that the new model is saved using torch.save in the `./models` directory.
+
+- Run the Benchmarking Script:
+Run the benchmarking script (`benchmark_models.py`) to evaluate the new model alongside existing models. Adjust the script as needed.
+
 
