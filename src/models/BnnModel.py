@@ -111,13 +111,16 @@ class BayesianModel(nn.Module):
 
     """
 
-    def __init__(self, input_size, hidden_size1, hidden_size2, output_size):
+    def __init__(
+        self, input_size, hidden_size1, hidden_size2, output_size, batch_norm=False
+    ):
         super().__init__()
 
         # Define the architecture of the Bayesian neural network
         self.layer1 = BnnLayer(input_size, hidden_size1)
         self.layer2 = BnnLayer(hidden_size1, hidden_size2)
         self.layer3 = BnnLayer(hidden_size2, output_size)
+        self.batch_norm = batch_norm
 
     def forward(self, x):
         """

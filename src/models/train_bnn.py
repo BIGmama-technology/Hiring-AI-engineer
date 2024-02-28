@@ -12,9 +12,6 @@ from sklearn.model_selection import train_test_split
 from src.data.data_loader import load_mauna_loa_atmospheric_co2
 from src.data.data_loader import load_international_airline_passengers
 
-import sys
-
-sys.path.insert(0, "/home/katia/Projects/AI/bigmama/Hiring-AI-engineer/scr")
 
 from src.data.data_loader import (
     load_mauna_loa_atmospheric_co2,
@@ -128,6 +125,7 @@ HIDDEN_SIZE1 = 10
 HIDDEN_SIZE2 = 40
 OUTPUT_SIZE = 1
 model_airline = BayesianModel(input_size, HIDDEN_SIZE1, HIDDEN_SIZE2, OUTPUT_SIZE)
+
 
 # Training loop
 train_losses_airline = train_bnn_model(model_airline, X2_train_tensor, y2_train_tensor)
