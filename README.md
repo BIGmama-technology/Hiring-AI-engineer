@@ -6,7 +6,7 @@ The applicant is also expected to write a modular code following good coding pra
 
 ## How does this work ?
 
-Below is a list of tasks that candidates concurently work on. If you deem your contribution to be complete, you can create a pull request.
+Below is a list of tasks that candidates concurrently work on. If you deem your contribution to be complete, you can create a pull request.
 The team will review your contribution and provide feedback. If its good your branch will be merged with the `main` branch.
 Tasks that are done will be ommited and new tasks will apear for others.
 Candidates with merged changes will be invited to pass an interview with the team.
