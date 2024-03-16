@@ -31,7 +31,7 @@ Both students looking for an internship at BIGmama and professionals looking for
 - [ ] **improve BNN results** : improve the architecture.
 - [ ] **improve training loop** : refactor + use `tqdm`
 - [ ] benchmark current models using relavant metrics and datasets of your choice (give clear instructions in the README on how to benchmark future added models)
-- [ ] <span style="color: green">**Varitional Inference** : implement variational inference for BNNs.</span> (extra love if you do this.)
+- [ ] <span style="color: green">**Variational Inference** : implement variational inference for BNNs.</span> (extra love if you do this.)
 - [ ] **plot epistmic uncertainty** : BNNs like GPs allow us to quantify uncertainty.
 
 ---
