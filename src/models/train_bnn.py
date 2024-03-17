@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
+from torch.distributions import Normal
 from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
-
-from src.models.BnnModel import BayesianModel
-from src.data.data_loader import (
+from .BnnModel import BayesianModel
+from data.data_loader import (
     load_mauna_loa_atmospheric_co2,
     load_international_airline_passengers,
 )
@@ -29,136 +30,61 @@ X1_train_tensor = torch.from_numpy(X1_train).float()
 y1_train_tensor = torch.from_numpy(y1_train).float()
 X1_test_tensor = torch.from_numpy(X1_test).float()
 
-# Define the Bayesian neural network model
+# Hyperparameters
 input_size = X1_train.shape[1]
-hidden_size = 20
+hidden_size = [20, 15]
 output_size = 1
-model = BayesianModel(input_size, hidden_size, output_size)
-
-# Define loss function and optimizer
-loss_function = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-
-# Training loop
-num_epochs = 1000
-train_losses = []
-
-for epoch in range(num_epochs):
-    # Forward pass
-    outputs = model(X1_train_tensor)
-    loss = loss_function(outputs, y1_train_tensor)
-
-    # Backward pass and optimization
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    train_losses.append(loss.item())
-
-# ---------  Plot training losses  ----------
-
-plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Training Loss Over Epochs")
-plt.legend()
-plt.show()
-
-# ---------  Plot Ground Truth vs Predictions  ----------
-
-# Evaluate the model on the test set
-with torch.no_grad():
-    model.eval()
-    predictions_1 = model(X1_test_tensor)
-
-# Convert predictions to NumPy array for plotting
-predictions_np_1 = predictions_1.numpy()
-
-# export model
-torch.save(model, "./models/mauna_loa_model.pth")
-
-plt.figure(figsize=(10, 6))
-plt.plot(X1_test, y1_test, "b.", markersize=10, label="Ground Truth")
-plt.plot(X1_test, predictions_1, "r.", markersize=10, label="Predictions")
-plt.xlabel("Input Features (X_test)")
-plt.ylabel("Ground Truth and Predictions (y_test, Predictions)")
-plt.title("True Values vs Predictions")
-plt.legend()
-plt.show()
+noise = 1.0
+train_size = X1_train.shape[0]
+batch_size = 63
+num_batches = train_size / batch_size
+kl_weight = 1 / num_batches
+learning_rate = 0.08
+num_epochs = 1500
 
 
-# ------------------------------------------
-# international-airline-passengers Dataset
-# ------------------------------------------
+# Creating a Custom Dataset
+class CustomDataset(Dataset):
+    def __init__(self, _features, target_feature):
+        self._features = _features
+        self.target_feature = target_feature
 
-# Prepare data
-X2, y2, X2_normalized = load_international_airline_passengers(AIRLINE_DATA_PATH)
+    def __len__(self):
+        return len(self._features)
 
-# Split the data into training and test sets
-X2_train, X2_test, y2_train, y2_test = train_test_split(
-    X2_normalized, y2, test_size=0.2, random_state=42
+    def __getitem__(self, idx):
+
+        return self._features[idx], self.target_feature[idx]
+
+
+# Define DataLoader Api for our dataset
+train_dataloader = DataLoader(
+    CustomDataset(X1_train, y1_train), batch_size=batch_size, shuffle=True
+)
+test_dataloader = DataLoader(
+    CustomDataset(X1_test, y1_test), batch_size=batch_size, shuffle=True
 )
 
-# Convert NumPy arrays to PyTorch tensors
-X2_train_tensor = torch.from_numpy(X2_train).float()
-y2_train_tensor = torch.from_numpy(y2_train).float()
-X2_test_tensor = torch.from_numpy(X2_test).float()
-
-# Define the Bayesian neural network model
-input_size = X2_train.shape[1]
-hidden_size = 20
-output_size = 1
-model = BayesianModel(input_size, hidden_size, output_size)
-
-
-# Define loss function and optimizer
-loss_function = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-
-# Training loop
-num_epochs = 1000
-train_losses = []
-
-for epoch in range(num_epochs):
-    # Forward pass
-    outputs = model(X2_train_tensor)
-    loss = loss_function(outputs, y2_train_tensor)
-
-    # Backward pass and optimization
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    train_losses.append(loss.item())
-
-# ---------  Plot training losses  ----------
-
-plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Training Loss Over Epochs")
-plt.legend()
-plt.show()
-
-# ---------  Plot Ground Truth vs Predictions  ----------
-
-# Evaluate the model on the test set
-with torch.no_grad():
-    model.eval()
-    predictions_2 = model(X2_test_tensor)
+# Define train Loop
+def train_loop(dataloader, model, loss_fn, optimizer):
+    size = len(dataloader.dataset)
+    # Set the model to training mode - important for batch normalization and dropout layers
+    # Unnecessary in this situation but added for best practices
+    model.train()
+    train_losses = []
+    for batch, (X, y) in enumerate(dataloader):
+        # Compute prediction and loss
+        pred = model(X.float())
+        loss = loss_fn(pred, y) + model.loss
+        train_losses.append(loss.item())
+        # Backpropagation
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+    return train_losses
 
 
-# Convert predictions to NumPy array for plotting
-predictions_np_2 = predictions_2.numpy()
-
-# export model
-torch.save(model, "./models/international_airline_passengers_model.pth")
-
-plt.figure(figsize=(10, 6))
-plt.plot(X2_test, y2_test, "b.", markersize=10, label="Ground Truth")
-plt.plot(X2_test, predictions_2, "r.", markersize=10, label="Predictions")
-plt.xlabel("Input Features (X_test)")
-plt.ylabel("Ground Truth and Predictions (y_test, Predictions)")
-plt.title("True Values vs Predictions")
-plt.legend()
-plt.show()
+# Gaussian negative log likelihood function
+def neg_log_likelihood(y_obs, y_pred, sigma=noise):
+    dist = Normal(loc=y_pred, scale=sigma)
+    return torch.sum(-dist.log_prob(y_obs))
